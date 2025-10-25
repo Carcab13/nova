@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy Button</title>
+    <link rel="stylesheet" href="button.css">
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js" defer></script>
+    <script src="/epoxy/index.js" defer></script>
+    <script src="/register-sw.js" defer></script>
+    <script src="/search.js" defer></script>
+</head>
+<body>
+    <header class="header">
+
+			<nav class="navbar">
+				<a href="index.html">Home</a>
+				<a href="button.html">Games</a>
+				<a href="apps.html">Apps</a>
+				<a href="#">About</a>
+				<a href="#">Settings</a>
+			</nav>
+		</header>
+    <div class="button-wrapper">
+        <div class="card" data-url="https://www.youtube.com/">
+            <h1>Youtube</h1>
+            <p>A video viewing platform</p>
+            <button class="open-proxy">Open Proxy</button>
+        </div>
+        <div class="card" data-url="https://www.tiktok.com/explore">
+            <h1>Tiktok</h1>
+            <p>🇨🇳 🇨🇳 🇨🇳 🇨🇳 🇨🇳 🇨🇳 🇨🇳 🇨🇳</p>
+            <button class="open-proxy">Open Proxy</button>
+        </div>
+        <div class="card" data-url="https://remove.bg">
+            <h1>Background remover</h1>
+            <p>I don't even know how it got blocked but it did</p>
+            <button class="open-proxy">Open Proxy</button>
+        </div>
+    </div>
+
+    <iframe id="sj-frame" style="display: none;"></iframe>
+    <div id="sj-close" onclick="closeProxy()">×</div>
+
+    <script>
+        // Initialize proxy systems once and attach click handlers to all .open-proxy buttons
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // register service worker if possible
+                await registerSW();
+            } catch (err) {
+                // non-fatal: SW may be blocked on http in some hosts
+                console.warn('Service worker registration failed or skipped:', err);
+            }
+
+            // Create Scramjet controller once
+            const { ScramjetController } = $scramjetLoadController();
+            const scramjet = new ScramjetController({
+                files: {
+                    wasm: '/scram/scramjet.wasm.wasm',
+                    all: '/scram/scramjet.all.js',
+                    sync: '/scram/scramjet.sync.js',
+                },
+            });
+            await scramjet.init();
+
+            // BareMux connection & transport setup (copied from index.js behavior)
+            const connection = new BareMux.BareMuxConnection('/baremux/worker.js');
+            const wispUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/';
+            if ((await connection.getTransport()) !== '/epoxy/index.mjs') {
+                await connection.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]);
+            }
+
+            const openButtons = document.querySelectorAll('.open-proxy');
+            openButtons.forEach((btn) => {
+                btn.addEventListener('click', async (ev) => {
+                    const card = ev.currentTarget.closest('.card');
+                    if (!card) return;
+                    const target = card.dataset.url;
+                    if (!target) return;
+
+                    const frame = document.getElementById('sj-frame');
+                    const encoded = scramjet.encodeUrl(target);
+                    frame.style.display = 'block';
+                    document.getElementById('sj-close').style.display = 'block';
+                    frame.src = encoded;
+                });
+            });
+        });
+
+        function closeProxy() {
+            const frame = document.getElementById('sj-frame');
+            if (!frame) return;
+            frame.style.display = 'none';
+            try { frame.src = 'about:blank'; } catch (e) {}
+            document.getElementById('sj-close').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
