@@ -22,18 +22,7 @@
 				<a href="#">Settings</a>
 			</nav>
 		</header>
-    <div class="button-wrapper">
-        <div class="card" data-url="https://gtube.net">
-            <h1>Gtube.net</h1>
-            <p>A site with a lot of games</p>
-            <button class="open-proxy">Open Proxy</button>
-        </div>
-        <div class="card" data-url="https://www.hoodamath.com/#gsc.tab=0">
-            <h1>Hoodamath</h1>
-            <p>More games</p>
-            <button class="open-proxy">Open Proxy</button>
-        </div>
-    </div>
+    <div class="button-wrapper"></div>
 
     <iframe id="sj-frame" style="display: none;"></iframe>
     <div id="sj-close" onclick="closeProxy()">×</div>
@@ -67,20 +56,56 @@
                 await connection.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]);
             }
 
-            const openButtons = document.querySelectorAll('.open-proxy');
-            openButtons.forEach((btn) => {
-                btn.addEventListener('click', async (ev) => {
-                    const card = ev.currentTarget.closest('.card');
-                    if (!card) return;
-                    const target = card.dataset.url;
-                    if (!target) return;
+            // Render cards from activities.json
+            const wrapper = document.querySelector('.button-wrapper');
+            try {
+                const res = await fetch('activities.json', { cache: 'no-store' });
+                const activities = await res.json();
+                if (Array.isArray(activities)) {
+                    activities.forEach((item) => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.dataset.url = item.url || '';
+                        // Build content
+                        const img = document.createElement('img');
+                        img.src = item.image || '';
+                        img.alt = item.name || '';
+                        img.style.maxWidth = '100%';
+                        img.style.borderRadius = '8px';
+                        img.style.marginBottom = '12px';
 
-                    const frame = document.getElementById('sj-frame');
-                    const encoded = scramjet.encodeUrl(target);
-                    frame.style.display = 'block';
-                    document.getElementById('sj-close').style.display = 'block';
-                    frame.src = encoded;
-                });
+                        const title = document.createElement('h1');
+                        title.textContent = item.name || 'Untitled';
+
+                        const btn = document.createElement('button');
+                        btn.className = 'open-proxy';
+                        btn.textContent = 'Open Proxy';
+
+                        card.appendChild(img);
+                        card.appendChild(title);
+                        card.appendChild(btn);
+                        wrapper.appendChild(card);
+                    });
+                }
+            } catch (e) {
+                console.warn('Failed to load activities.json', e);
+            }
+
+            // Delegate click handling for dynamically created buttons
+            document.body.addEventListener('click', (ev) => {
+                const targetEl = ev.target;
+                if (!(targetEl instanceof HTMLElement)) return;
+                if (!targetEl.classList.contains('open-proxy')) return;
+                const card = targetEl.closest('.card');
+                if (!card) return;
+                const target = card.dataset.url;
+                if (!target) return;
+
+                const frame = document.getElementById('sj-frame');
+                const encoded = scramjet.encodeUrl(target);
+                frame.style.display = 'block';
+                document.getElementById('sj-close').style.display = 'block';
+                frame.src = encoded;
             });
         });
 
