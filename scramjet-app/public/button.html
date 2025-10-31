@@ -59,36 +59,54 @@
             // Render cards from activities.json
             const wrapper = document.querySelector('.button-wrapper');
             try {
-                const res = await fetch('activities.json', { cache: 'no-store' });
+                // Try both relative and absolute paths
+                let res = await fetch('/activities.json', { cache: 'no-store' }).catch(() => 
+                    fetch('activities.json', { cache: 'no-store' })
+                );
+                if (!res || !res.ok) {
+                    throw new Error(`Failed to fetch: ${res?.status} ${res?.statusText}`);
+                }
                 const activities = await res.json();
+                console.log('Loaded activities:', activities.length);
                 if (Array.isArray(activities)) {
+                    wrapper.innerHTML = ''; // Clear any existing content
                     activities.forEach((item) => {
+                        if (!item.url || !item.name) return; // Skip invalid entries
                         const card = document.createElement('div');
                         card.className = 'card';
-                        card.dataset.url = item.url || '';
+                        card.dataset.url = item.url;
+                        
                         // Build content
-                        const img = document.createElement('img');
-                        img.src = item.image || '';
-                        img.alt = item.name || '';
-                        img.style.maxWidth = '100%';
-                        img.style.borderRadius = '8px';
-                        img.style.marginBottom = '12px';
+                        if (item.image) {
+                            const img = document.createElement('img');
+                            img.src = item.image;
+                            img.alt = item.name;
+                            img.style.maxWidth = '100%';
+                            img.style.borderRadius = '8px';
+                            img.style.marginBottom = '12px';
+                            img.style.height = 'auto';
+                            img.onerror = () => { img.style.display = 'none'; }; // Hide broken images
+                            card.appendChild(img);
+                        }
 
                         const title = document.createElement('h1');
-                        title.textContent = item.name || 'Untitled';
+                        title.textContent = item.name;
+                        card.appendChild(title);
 
                         const btn = document.createElement('button');
                         btn.className = 'open-proxy';
                         btn.textContent = 'Open Proxy';
-
-                        card.appendChild(img);
-                        card.appendChild(title);
                         card.appendChild(btn);
+                        
                         wrapper.appendChild(card);
                     });
+                    console.log('Rendered', wrapper.children.length, 'cards');
+                } else {
+                    console.error('activities.json is not an array');
                 }
             } catch (e) {
-                console.warn('Failed to load activities.json', e);
+                console.error('Failed to load activities.json', e);
+                wrapper.innerHTML = '<div class="card"><h1>Error</h1><p>Failed to load games. Check console for details.</p></div>';
             }
 
             // Delegate click handling for dynamically created buttons
