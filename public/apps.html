@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy Button</title>
+    <link rel="stylesheet" href="apps.css">
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js" defer></script>
+    <script src="/epoxy/index.js" defer></script>
+    <script src="/register-sw.js" defer></script>
+    <script src="/search.js" defer></script>
+    <script src="settings.js"></script>
+</head>
+<body>
+    <header class="header">
+
+			<nav class="navbar">
+				<a href="index.html">Home</a>
+				<a href="button.html">Games</a>
+				<a href="apps.html">Apps</a>
+				<a href="#">About</a>
+				<a href="settings.html">Settings</a>
+			</nav>
+		</header>
+    <div class="button-wrapper">
+        <div class="card-search-container">
+            <input type="text" id="card-search" placeholder="Search apps..." />
+        </div>
+    </div>
+
+    <iframe id="sj-frame" style="display: none;"></iframe>
+    <div id="sj-close" onclick="closeProxy()">×</div>
+
+    <script>
+        let scramjet = null;
+        let connection = null;
+
+        // Store all cards for filtering
+        let allCards = [];
+        let requestGameCard = null;
+
+        // Filter cards based on search input
+        function filterCards(searchTerm) {
+            const wrapper = document.querySelector('.button-wrapper');
+            if (!wrapper) return;
+            
+            const term = searchTerm.toLowerCase().trim();
+            
+            allCards.forEach(card => {
+                // Always show Request Game card
+                if (card === requestGameCard) {
+                    card.style.display = '';
+                    return;
+                }
+                
+                const cardName = card.querySelector('h1')?.textContent.toLowerCase() || '';
+                if (term === '' || cardName.includes(term)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Load classtools.json immediately, don't wait for proxy setup
+        async function loadApps() {
+            const wrapper = document.querySelector('.button-wrapper');
+            if (!wrapper) {
+                console.error('button-wrapper not found');
+                return;
+            }
+            
+            try {
+                // Try both relative and absolute paths
+                let res = await fetch('/classtools.json', { cache: 'no-store' }).catch(() => 
+                    fetch('classtools.json', { cache: 'no-store' })
+                );
+                if (!res || !res.ok) {
+                    throw new Error(`Failed to fetch: ${res?.status} ${res?.statusText}`);
+                }
+                const apps = await res.json();
+                console.log('Loaded apps:', apps.length);
+                if (Array.isArray(apps)) {
+                    // Clear cards but keep search container
+                    const searchContainer = wrapper.querySelector('.card-search-container');
+                    wrapper.innerHTML = '';
+                    if (searchContainer) {
+                        wrapper.appendChild(searchContainer);
+                    }
+                    allCards = []; // Reset cards array
+                    requestGameCard = null;
+                    
+                    apps.forEach((item) => {
+                        if (!item.url || !item.name) return; // Skip invalid entries
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.dataset.url = item.url;
+                        
+                        // Build content
+                        if (item.image) {
+                            const img = document.createElement('img');
+                            img.src = item.image;
+                            img.alt = item.name;
+                            img.style.maxWidth = '100%';
+                            img.style.borderRadius = '8px';
+                            img.style.marginBottom = '12px';
+                            img.style.height = 'auto';
+                            img.onerror = () => { img.style.display = 'none'; }; // Hide broken images
+                            card.appendChild(img);
+                        }
+
+                        const title = document.createElement('h1');
+                        title.textContent = item.name;
+                        card.appendChild(title);
+
+                        const btn = document.createElement('button');
+                        btn.className = 'open-proxy';
+                        btn.textContent = 'Open Proxy';
+                        card.appendChild(btn);
+                        
+                        wrapper.appendChild(card);
+                        
+                        // Track Request Game card
+                        if (item.name.toLowerCase() === 'request game') {
+                            requestGameCard = card;
+                        }
+                        
+                        allCards.push(card); // Store card for filtering
+                    });
+                    console.log('Rendered', wrapper.children.length, 'cards');
+                } else {
+                    console.error('classtools.json is not an array');
+                    wrapper.innerHTML = '<div class="card"><h1>Error</h1><p>classtools.json is not an array</p></div>';
+                }
+            } catch (e) {
+                console.error('Failed to load classtools.json', e);
+                wrapper.innerHTML = '<div class="card"><h1>Error</h1><p>Failed to load apps: ' + e.message + '</p></div>';
+            }
+        }
+
+        // Initialize proxy systems once and attach click handlers to all .open-proxy buttons
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load apps immediately
+            loadApps();
+
+            // Setup card search functionality
+            const cardSearch = document.getElementById('card-search');
+            if (cardSearch) {
+                cardSearch.addEventListener('input', (ev) => {
+                    filterCards(ev.target.value);
+                });
+            }
+
+            try {
+                // register service worker if possible
+                await registerSW();
+            } catch (err) {
+                // non-fatal: SW may be blocked on http in some hosts
+                console.warn('Service worker registration failed or skipped:', err);
+            }
+
+            // Create Scramjet controller once
+            try {
+                const { ScramjetController } = $scramjetLoadController();
+                scramjet = new ScramjetController({
+                    files: {
+                        wasm: '/scram/scramjet.wasm.wasm',
+                        all: '/scram/scramjet.all.js',
+                        sync: '/scram/scramjet.sync.js',
+                    },
+                });
+                await scramjet.init();
+                console.log('Scramjet initialized');
+            } catch (err) {
+                console.error('Scramjet initialization failed:', err);
+            }
+
+            // BareMux connection & transport setup (copied from index.js behavior)
+            try {
+                connection = new BareMux.BareMuxConnection('/baremux/worker.js');
+                const wispUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/';
+                if ((await connection.getTransport()) !== '/epoxy/index.mjs') {
+                    await connection.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]);
+                }
+                console.log('BareMux initialized');
+            } catch (err) {
+                console.error('BareMux initialization failed:', err);
+            }
+
+            // Delegate click handling for dynamically created buttons
+            document.body.addEventListener('click', (ev) => {
+                const targetEl = ev.target;
+                if (!(targetEl instanceof HTMLElement)) return;
+                if (!targetEl.classList.contains('open-proxy')) return;
+                const card = targetEl.closest('.card');
+                if (!card) return;
+                const target = card.dataset.url;
+                if (!target) return;
+
+                if (!scramjet) {
+                    console.error('Scramjet not initialized yet');
+                    return;
+                }
+
+                const frame = document.getElementById('sj-frame');
+                const encoded = scramjet.encodeUrl(target);
+                frame.style.display = 'block';
+                document.getElementById('sj-close').style.display = 'block';
+                // Prevent body scrolling when iframe is shown
+                document.body.classList.add('no-scroll');
+                document.documentElement.classList.add('no-scroll');
+                frame.src = encoded;
+            });
+        });
+
+        function closeProxy() {
+            const frame = document.getElementById('sj-frame');
+            if (!frame) return;
+            frame.style.display = 'none';
+            try { frame.src = 'about:blank'; } catch (e) {}
+            document.getElementById('sj-close').style.display = 'none';
+            // Re-enable body scrolling when iframe is closed
+            document.body.classList.remove('no-scroll');
+            document.documentElement.classList.remove('no-scroll');
+        }
+    </script>
+</body>
+</html>

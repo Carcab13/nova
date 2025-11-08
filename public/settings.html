@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - NovaProxy</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <a href="index.html">Home</a>
+            <a href="button.html">Games</a>
+            <a href="apps.html">Apps</a>
+            <a href="about.html">About</a>
+            <a href="settings.html">Settings</a>
+        </nav>
+    </header>
+    
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1>Settings</h1>
+            <p class="slogan">Customize your NovaProxy experience</p>
+        </div>
+
+        <div class="settings-content">
+            <div class="setting-card">
+                <h2>Background Image</h2>
+                <p class="setting-description">Choose a background image for your proxy interface</p>
+                
+                <div class="background-options">
+                    <div class="bg-option" data-bg="img.jpg">
+                        <div class="bg-preview" style="background-image: url('img.jpg')"></div>
+                        <span>Default</span>
+                    </div>
+                    <div class="bg-option" data-bg="https://images.unsplash.com/photo-1557683316-973673baf926?w=1920">
+                        <div class="bg-preview" style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?w=400')"></div>
+                        <span>Gradient Purple</span>
+                    </div>
+                    <div class="bg-option" data-bg="https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920">
+                        <div class="bg-preview" style="background-image: url('https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400')"></div>
+                        <span>Ocean</span>
+                    </div>
+                    <div class="bg-option" data-bg="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920">
+                        <div class="bg-preview" style="background-image: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400')"></div>
+                        <span>Mountains</span>
+                    </div>
+                    <div class="bg-option" data-bg="https://images.unsplash.com/photo-1485470733090-0aae1788d5af?w=1920">
+                        <div class="bg-preview" style="background-image: url('https://images.unsplash.com/photo-1485470733090-0aae1788d5af?w=400')"></div>
+                        <span>Desert</span>
+                    </div>
+                    <div class="bg-option" data-bg="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920">
+                        <div class="bg-preview" style="background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400')"></div>
+                        <span>Forest</span>
+                    </div>
+                </div>
+
+                <div class="custom-bg-input">
+                    <label for="custom-bg-url">Or enter a custom image URL:</label>
+                    <input type="url" id="custom-bg-url" placeholder="https://example.com/image.jpg">
+                    <button type="button" id="apply-custom-bg">Apply Custom Background</button>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <h2>Search Engine</h2>
+                <p class="setting-description">Choose your preferred search engine</p>
+                
+                <div class="search-engine-options">
+                    <label class="radio-option">
+                        <input type="radio" name="search-engine" value="https://www.google.com/search?q=%s" checked>
+                        <span class="radio-label">
+                            <strong>Google</strong>
+                            <small>Default search engine</small>
+                        </span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="search-engine" value="https://duckduckgo.com/?q=%s">
+                        <span class="radio-label">
+                            <strong>DuckDuckGo</strong>
+                            <small>Privacy-focused search</small>
+                        </span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="search-engine" value="https://www.bing.com/search?q=%s">
+                        <span class="radio-label">
+                            <strong>Bing</strong>
+                            <small>Microsoft's search engine</small>
+                        </span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="search-engine" value="https://search.yahoo.com/search?p=%s">
+                        <span class="radio-label">
+                            <strong>Yahoo</strong>
+                            <small>Yahoo search</small>
+                        </span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="search-engine" value="https://www.startpage.com/sp/search?query=%s">
+                        <span class="radio-label">
+                            <strong>Startpage</strong>
+                            <small>Privacy search engine</small>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="custom-search-input">
+                    <label for="custom-search-url">Or enter a custom search engine URL (use %s for query):</label>
+                    <input type="text" id="custom-search-url" placeholder="https://example.com/search?q=%s">
+                    <button type="button" id="apply-custom-search">Apply Custom Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-footer">
+            <button type="button" id="reset-settings" class="reset-btn">Reset to Defaults</button>
+            <p class="save-notice">Settings are automatically saved</p>
+        </div>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>
+
